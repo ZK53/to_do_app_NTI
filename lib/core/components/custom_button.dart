@@ -10,17 +10,31 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialButton(
-      onPressed: onPressed,
-      color: AppColors.button,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
-      padding: EdgeInsets.symmetric(horizontal: 120.w, vertical: 14.h),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 19.sp,
-          fontWeight: FontWeight.w300,
-          color: Colors.white,
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            offset: Offset(0, 5),
+            blurRadius: 10,
+            spreadRadius: 0,
+            color: AppColors.button,
+          ),
+        ],
+      ),
+      child: MaterialButton(
+        onPressed: onPressed,
+        color: AppColors.button,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 120.w, vertical: 14.h),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 19.sp,
+            fontWeight: FontWeight.w300,
+            color: Colors.white,
+          ),
         ),
       ),
     );
