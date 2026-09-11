@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:to_do_app/core/components/custom_button.dart';
+import 'package:to_do_app/core/utils/colors.dart';
 
 class LetsStartScreen extends StatelessWidget {
   const LetsStartScreen({super.key});
@@ -9,6 +10,7 @@ class LetsStartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: Align(
         alignment: Alignment.center,
         child: Column(
