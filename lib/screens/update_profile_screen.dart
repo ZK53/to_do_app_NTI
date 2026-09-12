@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:to_do_app/core/components/custom_button.dart';
 import 'package:to_do_app/core/components/custom_text_field.dart';
 import 'package:to_do_app/core/utils/colors.dart';
@@ -24,13 +23,7 @@ class UpdateProfile extends StatelessWidget {
             SizedBox(height: 23.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 23.w),
-              child: CustomTextField(
-                obsecure: false,
-                text: "Username",
-                prefixIcon: SvgPicture.asset(
-                  "assets/images/auth/login_username_icon.svg",
-                ),
-              ),
+              child: CustomTextField(obsecure: false, text: "Username"),
             ),
             SizedBox(height: 23.h),
             CustomButton(onPressed: () {}, text: "Save"),
