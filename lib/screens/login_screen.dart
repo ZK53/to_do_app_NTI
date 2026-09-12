@@ -15,6 +15,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool isShowen = false;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -23,11 +25,17 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Image.asset(
-              "assets/images/flag.png",
-              height: 293.h,
-              width: double.infinity,
-              fit: BoxFit.cover,
+          ClipRRect(
+              borderRadius: BorderRadius.only(
+                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+              ),
+              child: Image.asset(
+                "assets/images/flag.png",
+                height: 293.h,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
             SizedBox(height: 23.h),
             Padding(
@@ -38,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 prefixIcon: SvgPicture.asset(
                   "assets/images/auth/login_username_icon.svg",
                 ),
+                controller: _usernameController,
               ),
             ),
             SizedBox(height: 10.h),
@@ -57,6 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     isShowen = !isShowen;
                   });
                 },
+                controller: _passwordController,
               ),
             ),
             SizedBox(height: 23.h),

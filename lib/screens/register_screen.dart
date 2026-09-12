@@ -16,6 +16,10 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   bool passwordShowen = false;
   bool confirmPasswordShowen = false;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confrimPasswordController =
+      TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +28,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            Image.asset(
-              "assets/images/flag.png",
-              height: 293.h,
-              width: double.infinity,
-              fit: BoxFit.cover,
+            ClipRRect(
+              borderRadius: BorderRadius.only(
+                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+              ),
+              child: Image.asset(
+                "assets/images/flag.png",
+                height: 293.h,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
             SizedBox(height: 23.h),
             Padding(
@@ -39,6 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 prefixIcon: SvgPicture.asset(
                   "assets/images/auth/login_username_icon.svg",
                 ),
+                controller: _usernameController,
               ),
             ),
             SizedBox(height: 10.h),
@@ -58,6 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     passwordShowen = !passwordShowen;
                   });
                 },
+                controller: _passwordController,
               ),
             ),
             SizedBox(height: 10.h),
@@ -77,6 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     confirmPasswordShowen = !confirmPasswordShowen;
                   });
                 },
+                controller: _confrimPasswordController,
               ),
             ),
             SizedBox(height: 23.h),
