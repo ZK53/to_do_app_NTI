@@ -25,6 +25,7 @@ class CustomTextField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       obscureText: obsecure,
+      obscuringCharacter: "*",
       decoration: InputDecoration(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
         hintText: text,
@@ -43,6 +44,7 @@ class CustomTextField extends StatelessWidget {
           icon: SvgPicture.asset(suffixIcon ?? ''),
         ),
       ),
+      style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w300),
     );
   }
 }
