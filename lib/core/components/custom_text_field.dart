@@ -8,6 +8,7 @@ class CustomTextField extends StatelessWidget {
   final String? suffixIcon;
   final bool obsecure;
   final void Function()? onPressed;
+  final TextEditingController controller;
 
   const CustomTextField({
     super.key,
@@ -16,11 +17,13 @@ class CustomTextField extends StatelessWidget {
     this.suffixIcon,
     required this.obsecure,
     this.onPressed,
+    required this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      controller: controller,
       obscureText: obsecure,
       decoration: InputDecoration(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
