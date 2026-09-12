@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class CustomTextField extends StatelessWidget {
   final String text;
-  final Widget prefixIcon;
+  final Widget? prefixIcon;
   final String? suffixIcon;
   final bool obsecure;
   final void Function()? onPressed;
@@ -12,10 +12,10 @@ class CustomTextField extends StatelessWidget {
   const CustomTextField({
     super.key,
     required this.text,
-    required this.prefixIcon,
+    this.prefixIcon,
     this.suffixIcon,
     required this.obsecure,
-     this.onPressed,
+    this.onPressed,
   });
 
   @override
@@ -26,10 +26,15 @@ class CustomTextField extends StatelessWidget {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
         hintText: text,
         hintStyle: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w200),
-        prefixIcon: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          child: prefixIcon,
-        ),
+        prefixIcon: prefixIcon == null
+            ? null
+            : Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 16,
+                ),
+                child: prefixIcon,
+              ),
         suffixIcon: IconButton(
           onPressed: onPressed,
           icon: SvgPicture.asset(suffixIcon ?? ''),
