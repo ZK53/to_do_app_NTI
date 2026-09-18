@@ -3,8 +3,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:to_do_app/core/components/custom_button.dart';
 import 'package:to_do_app/core/components/custom_text_field.dart';
+import 'package:to_do_app/core/helper/navigation.dart';
 import 'package:to_do_app/core/utils/colors.dart';
-import 'package:to_do_app/screens/register_screen.dart';
+import 'package:to_do_app/features/auth/data/repo/auth_repo.dart';
+import 'package:to_do_app/features/auth/presentation/views/register_screen.dart';
+import 'package:to_do_app/features/home/presentation/views/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +20,48 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isShowen = false;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool isLoading = false;
+  final AuthRepo _authRepo = AuthRepo();
+
+  /// Handle login with authentication
+  /// Navigates to HomeScreen on successful login
+  Future<void> _login() async {
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter username and password')),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final result = await _authRepo.login(
+        username: _usernameController.text,
+        password: _passwordController.text,
+      );
+
+      if (mounted) {
+        setState(() => isLoading = false);
+
+        if (result['status'] == 'success') {
+          // Navigate to home screen after successful login
+          CustomNavigation.navigateAndRemoveAll(context, const HomeScreen());
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Login failed')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-          ClipRRect(
+            ClipRRect(
               borderRadius: BorderRadius.only(
                 bottomRight: Radius.circular(20),
                 bottomLeft: Radius.circular(20),
@@ -70,7 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             SizedBox(height: 23.h),
-            CustomButton(onPressed: () {}, text: "Login"),
+            CustomButton(
+              onPressed: isLoading ? null : _login,
+              text: isLoading ? "Loading..." : "Login",
+            ),
             SizedBox(height: 41.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -84,9 +132,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: ((context) => RegisterScreen())),
-                    (Route route) => false,
+                  onPressed: () => CustomNavigation.navigationPushReplacement(
+                    context,
+                    const RegisterScreen(),
                   ),
                   child: Text(
                     "Register",
@@ -103,5 +151,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

@@ -3,8 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:to_do_app/core/components/custom_button.dart';
 import 'package:to_do_app/core/components/custom_text_field.dart';
+import 'package:to_do_app/core/helper/navigation.dart';
 import 'package:to_do_app/core/utils/colors.dart';
-import 'package:to_do_app/screens/login_screen.dart';
+import 'package:to_do_app/features/auth/data/repo/auth_repo.dart';
+import 'package:to_do_app/features/auth/presentation/views/login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,10 +18,79 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   bool passwordShowen = false;
   bool confirmPasswordShowen = false;
+  bool isLoading = false;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confrimPasswordController =
       TextEditingController();
+  final AuthRepo _authRepo = AuthRepo();
+
+  /// Handle registration with validation
+  /// Navigates to LoginScreen after successful registration
+  Future<void> _register() async {
+    // Validation
+    if (_usernameController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confrimPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      return;
+    }
+
+    if (_passwordController.text != _confrimPasswordController.text) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+      return;
+    }
+
+    if (_passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final result = await _authRepo.register(
+        username: _usernameController.text,
+        password: _passwordController.text,
+      );
+
+      if (mounted) {
+        setState(() => isLoading = false);
+
+        if (result['status'] == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registration successful! Please login.'),
+            ),
+          );
+          // Navigate to login screen after successful registration
+          if (mounted) {
+            CustomNavigation.navigationPushReplacement(
+              context,
+              const LoginScreen(),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Registration failed')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +164,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             SizedBox(height: 23.h),
-            CustomButton(onPressed: () {}, text: "Register"),
+            CustomButton(
+              onPressed: isLoading ? null : _register,
+              text: isLoading ? "Registering..." : "Register",
+            ),
             SizedBox(height: 41.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -107,9 +181,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: ((context) => LoginScreen())),
-                    (Route route) => false,
+                  onPressed: () => CustomNavigation.navigationPushReplacement(
+                    context,
+                    const LoginScreen(),
                   ),
                   child: Text(
                     "Login",
@@ -126,5 +200,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _confrimPasswordController.dispose();
+    super.dispose();
   }
 }
