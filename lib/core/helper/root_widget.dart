@@ -23,8 +23,7 @@ class _RootWidgetState extends State<RootWidget> {
 
   /// Determine which screen to show based on app state
   Future<Widget> _determineInitialScreen() async {
-    // Show splash screen while checking app state
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 1800));
 
     final initialRoute = await AppInitialization.getInitialRoute();
 

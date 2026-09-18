@@ -3,11 +3,50 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:to_do_app/core/components/custom_button.dart';
 import 'package:to_do_app/core/components/custom_text_field.dart';
 import 'package:to_do_app/core/utils/colors.dart';
+import 'package:to_do_app/features/profile/data/repo/profile_repo.dart';
 
-class UpdateProfile extends StatelessWidget {
+class UpdateProfile extends StatefulWidget {
+  const UpdateProfile({super.key});
+
+  @override
+  State<UpdateProfile> createState() => _UpdateProfileState();
+}
+
+class _UpdateProfileState extends State<UpdateProfile> {
   final TextEditingController _usernameController = TextEditingController();
+  final ProfileRepo _profileRepo = ProfileRepo();
+  bool _isLoading = false;
 
-  UpdateProfile({super.key});
+  Future<void> _saveProfile() async {
+    final username = _usernameController.text.trim();
+
+    if (username.isEmpty) {
+      _showMessage('Username is required');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await _profileRepo.updateProfile(username: username);
+
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (result['status'] == 'success') {
+      _showMessage(result['message'] ?? 'Profile updated successfully');
+      Navigator.of(context).pop();
+      return;
+    }
+
+    _showMessage(result['message'] ?? 'Failed to update profile');
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +77,10 @@ class UpdateProfile extends StatelessWidget {
               ),
             ),
             SizedBox(height: 23.h),
-            CustomButton(onPressed: () {}, text: "Save"),
+            CustomButton(
+              onPressed: _isLoading ? null : _saveProfile,
+              text: _isLoading ? 'Loading...' : 'Save',
+            ),
           ],
         ),
       ),

@@ -92,13 +92,29 @@ class AuthRepo {
 
   Future<Map<String, dynamic>> refreshToken() async {
     try {
-      var response = await _apiHelper.postRequest(
-        endpoint: "endpoint",
+      final savedRefreshToken = api_helper.refreshToken ?? "";
+      final response = await _apiHelper.postRequest(
+        endpoint: EndPoints.refreshToken,
+        data: {'refresh_token': savedRefreshToken},
         isRefresh: true,
       );
 
-      var jsonResponse = response.data as Map<String, dynamic>;
-      return {"status": "success", "message": jsonResponse['message']};
+      final jsonResponse = response.data as Map<String, dynamic>;
+      final newAccessToken = jsonResponse['access_token'];
+      final newRefreshToken =
+          jsonResponse['refresh_token'] ?? savedRefreshToken;
+
+      if (newAccessToken != null && newAccessToken.toString().isNotEmpty) {
+        await saveTokens(
+          accessToken: newAccessToken.toString(),
+          refreshToken: newRefreshToken.toString(),
+        );
+      }
+
+      return {
+        "status": "success",
+        "message": jsonResponse['message'] ?? 'Token refreshed successfully',
+      };
     } catch (e) {
       return {"status": "failed", "message": _apiHelper.handleException(e)};
     }
