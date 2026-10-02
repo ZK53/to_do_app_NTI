@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:to_do_app/core/helper/navigation.dart';
 import 'package:to_do_app/core/utils/colors.dart';
 import 'package:to_do_app/models/task_model.dart';
+import 'package:to_do_app/models/user_model.dart';
 import 'package:to_do_app/screens/add_task_screen.dart';
 import 'package:to_do_app/screens/edit_task_screen.dart';
 import 'package:to_do_app/screens/profile_screen.dart';
+import 'package:to_do_app/services/profile_service.dart';
 import 'package:to_do_app/services/task_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,15 +19,27 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final TaskService _taskService;
+  final ProfileService _profileService = ProfileService();
+
   List<TaskModel> _tasks = [];
+  UserModel? _user;
+
   bool _isLoading = false;
+  bool _isUserLoading = true;
 
   @override
   void initState() {
     super.initState();
+
     _taskService = TaskService();
+
     _loadTasks();
+    _loadUserData();
   }
+
+  // ============================================================
+  // LOAD TASKS
+  // ============================================================
 
   Future<void> _loadTasks() async {
     setState(() => _isLoading = true);
@@ -41,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (result['status'] == 'success') {
         final data = result['data'] as List<TaskModel>;
+
         setState(() {
           _tasks = data;
           _isLoading = false;
@@ -53,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (_) {
       if (!mounted) return;
+
       setState(() {
         _tasks = [];
         _isLoading = false;
@@ -60,15 +75,54 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // ============================================================
+  // LOAD USER DATA
+  // ============================================================
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isUserLoading = true;
+    });
+
+    try {
+      final result = await _profileService.getUserData();
+
+      if (!mounted) return;
+
+      if (result['status'] == 'success') {
+        setState(() {
+          _user = result['data'] as UserModel;
+          _isUserLoading = false;
+        });
+      } else {
+        setState(() {
+          _isUserLoading = false;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _isUserLoading = false;
+      });
+    }
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.of(context).push(
             MaterialPageRoute(builder: (context) => const AddTaskScreen()),
           );
+
           if (result == true) {
             _loadTasks();
           }
@@ -82,12 +136,12 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 50.w,
           decoration: BoxDecoration(
             color: AppColors.button,
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
-                offset: const Offset(0, 4),
+                offset: Offset(0, 4),
                 spreadRadius: 0,
                 blurRadius: 4,
-                color: const Color(0x40000000),
+                color: Color(0x40000000),
               ),
             ],
             shape: BoxShape.circle,
@@ -98,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -115,21 +170,35 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ============================================================
+  // HEADER
+  // ============================================================
+
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(top: 20.h, left: 20.w),
       child: Row(
         children: [
           GestureDetector(
-            onTap: () {
-              CustomNavigation.navigationPush(context, const ProfileScreen());
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+
+              // بعد الرجوع من Profile
+              // نجيب الـ username الجديد
+              if (mounted) {
+                _loadUserData();
+              }
             },
-            child: CircleAvatar(
-              backgroundImage: const AssetImage("assets/images/flag.png"),
+            child: const CircleAvatar(
+              backgroundImage: AssetImage("assets/images/flag.png"),
               radius: 30,
             ),
           ),
+
           SizedBox(width: 16.w),
+
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -137,17 +206,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 "Hello!",
                 style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w300),
               ),
+
               SizedBox(height: 4.h),
-              Text(
-                "User",
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w300),
-              ),
+
+              _isUserLoading
+                  ? Text(
+                      "Loading...",
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    )
+                  : Text(
+                      _user?.username ?? "User",
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
             ],
           ),
         ],
       ),
     );
   }
+
+  // ============================================================
+  // EMPTY STATE
+  // ============================================================
 
   Widget _buildEmptyState() {
     return Padding(
@@ -159,6 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w300),
             textAlign: TextAlign.center,
           ),
+
           SvgPicture.asset(
             "assets/images/home_no_todo.svg",
             height: 268.h,
@@ -168,6 +255,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // ============================================================
+  // TASK LIST
+  // ============================================================
 
   Widget _buildTaskList() {
     return Padding(
@@ -184,7 +275,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: const Color(0xFF24252C),
                 ),
               ),
+
               SizedBox(width: 20.w),
+
               Container(
                 height: 15.h,
                 width: 14.w,
@@ -205,12 +298,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+
           SizedBox(height: 31.h),
+
           Expanded(
             child: ListView.builder(
               itemCount: _tasks.length,
               itemBuilder: (context, index) {
                 final task = _tasks[index];
+
                 return GestureDetector(
                   onTap: () async {
                     final result = await Navigator.of(context).push(
@@ -219,6 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             EditTaskScreen(taskId: task.id, taskModel: task),
                       ),
                     );
+
                     if (result == true) {
                       _loadTasks();
                     }
@@ -233,6 +330,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ============================================================
+  // TASK CARD
+  // ============================================================
+
   Widget _buildTaskCard(TaskModel task) {
     return Container(
       margin: EdgeInsets.only(bottom: 20.h),
@@ -240,11 +341,11 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFCEEBDC),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             blurRadius: 4,
-            offset: const Offset(0, 4),
-            color: const Color.fromRGBO(0, 0, 0, 0.25),
+            offset: Offset(0, 4),
+            color: Color.fromRGBO(0, 0, 0, 0.25),
           ),
         ],
       ),
@@ -262,7 +363,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Color.fromRGBO(110, 106, 124, 1),
                   ),
                 ),
+
                 SizedBox(height: 15.h),
+
                 Text(
                   task.description,
                   style: const TextStyle(color: Color.fromRGBO(36, 37, 44, 1)),
@@ -272,6 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+
           Padding(
             padding: const EdgeInsets.only(bottom: 30),
             child: Column(
@@ -283,6 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Color.fromRGBO(110, 106, 124, 1),
                   ),
                 ),
+
                 Text(
                   task.time ?? 'No time',
                   style: const TextStyle(

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:to_do_app/core/network/end_points.dart';
+import 'package:to_do_app/models/user_model.dart';
 
 import 'auth_service.dart';
 
@@ -15,6 +16,7 @@ class ProfileService {
         sendTimeout: const Duration(seconds: 15),
       ),
     );
+
     _setupInterceptors();
   }
 
@@ -23,16 +25,67 @@ class ProfileService {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           final token = AuthService.accessToken;
+
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+
           return handler.next(options);
         },
       ),
     );
   }
 
-  /// Change password
+  // ============================================================
+  // GET USER DATA
+  // ============================================================
+
+  Future<Map<String, dynamic>> getUserData() async {
+    try {
+      print('=== GET USER DATA API CALL ===');
+      print('URL: ${EndPoints.baseUrl}${EndPoints.getUserData}');
+
+      final response = await _dio.get(EndPoints.getUserData);
+
+      print('Response Status: ${response.statusCode}');
+      print('Response Data: ${response.data}');
+      print('================================');
+
+      final dynamic responseData = response.data;
+
+      Map<String, dynamic> jsonResponse = {};
+
+      if (responseData is Map) {
+        jsonResponse = Map<String, dynamic>.from(responseData);
+      }
+
+      // Try different possible response structures
+      Map<String, dynamic> userData = {};
+
+      if (jsonResponse['user'] is Map) {
+        userData = Map<String, dynamic>.from(jsonResponse['user']);
+      } else if (jsonResponse['data'] is Map) {
+        userData = Map<String, dynamic>.from(jsonResponse['data']);
+      } else {
+        userData = jsonResponse;
+      }
+
+      final user = UserModel.fromJson(userData);
+
+      return {'status': 'success', 'data': user};
+    } catch (e) {
+      print('=== GET USER DATA API ERROR ===');
+      print('Error: $e');
+      print('================================');
+
+      return {'status': 'failed', 'message': _handleException(e)};
+    }
+  }
+
+  // ============================================================
+  // CHANGE PASSWORD
+  // ============================================================
+
   Future<Map<String, dynamic>> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -42,31 +95,48 @@ class ProfileService {
       print('=== CHANGE PASSWORD API CALL ===');
       print('URL: ${EndPoints.baseUrl}${EndPoints.changePassword}');
 
+      // IMPORTANT:
+      // Backend expects form-data
+      final formData = FormData.fromMap({
+        'current_password': currentPassword,
+        'new_password': newPassword,
+        'new_password_confirm': confirmPassword,
+      });
+
       final response = await _dio.post(
         EndPoints.changePassword,
-        data: {
-          'current_password': currentPassword,
-          'new_password': newPassword,
-          'new_password_confirm': confirmPassword,
-        },
+        data: formData,
       );
+
       print('Response Status: ${response.statusCode}');
+      print('Response Data: ${response.data}');
       print('==================================');
 
-      final jsonResponse = response.data as Map<String, dynamic>;
+      final dynamic responseData = response.data;
+
+      Map<String, dynamic> jsonResponse = {};
+
+      if (responseData is Map) {
+        jsonResponse = Map<String, dynamic>.from(responseData);
+      }
+
       return {
-        "status": "success",
-        "message": jsonResponse['message'] ?? 'Password changed',
+        'status': 'success',
+        'message': jsonResponse['message'] ?? 'Password changed successfully',
       };
     } catch (e) {
       print('=== CHANGE PASSWORD API ERROR ===');
       print('Error: $e');
       print('==================================');
-      return {"status": "failed", "message": _handleException(e)};
+
+      return {'status': 'failed', 'message': _handleException(e)};
     }
   }
 
-  /// Update profile
+  // ============================================================
+  // UPDATE PROFILE
+  // ============================================================
+
   Future<Map<String, dynamic>> updateProfile({
     required String username,
     String? image,
@@ -76,39 +146,68 @@ class ProfileService {
       print('URL: ${EndPoints.baseUrl}${EndPoints.updateProfile}');
       print('Username: $username');
 
-      final data = <String, dynamic>{"username": username};
+      final data = <String, dynamic>{'username': username};
+
       if (image != null && image.isNotEmpty) {
         data['image'] = await MultipartFile.fromFile(image);
       }
 
       final formData = FormData.fromMap(data);
-      final response = await _dio.post(EndPoints.updateProfile, data: formData);
+
+      // IMPORTANT:
+      // Postman shows PUT, not POST
+      final response = await _dio.put(EndPoints.updateProfile, data: formData);
+
       print('Response Status: ${response.statusCode}');
+      print('Response Data: ${response.data}');
       print('=================================');
 
-      final jsonResponse = response.data as Map<String, dynamic>;
+      final dynamic responseData = response.data;
+
+      Map<String, dynamic> jsonResponse = {};
+
+      if (responseData is Map) {
+        jsonResponse = Map<String, dynamic>.from(responseData);
+      }
+
       return {
-        "status": "success",
-        "message": jsonResponse['message'] ?? 'Profile updated',
+        'status': 'success',
+        'message': jsonResponse['message'] ?? 'Profile updated successfully',
       };
     } catch (e) {
       print('=== UPDATE PROFILE API ERROR ===');
       print('Error: $e');
       print('================================');
-      return {"status": "failed", "message": _handleException(e)};
+
+      return {'status': 'failed', 'message': _handleException(e)};
     }
   }
 
-  /// Handle exceptions
+  // ============================================================
+  // EXCEPTION HANDLER
+  // ============================================================
+
   String _handleException(dynamic exception) {
     if (exception is DioException) {
-      if (exception.response != null) {
-        final errorMessage =
-            exception.response?.data['message'] ?? 'Error occurred';
-        return errorMessage.toString();
+      print('DioException Status: ${exception.response?.statusCode}');
+      print('DioException Data: ${exception.response?.data}');
+
+      final data = exception.response?.data;
+
+      if (data is Map) {
+        return data['message']?.toString() ??
+            data['error']?.toString() ??
+            data['msg']?.toString() ??
+            'Error occurred';
       }
+
+      if (data is String && data.isNotEmpty) {
+        return data;
+      }
+
       return exception.message ?? 'Network error';
     }
+
     return exception.toString();
   }
 }
