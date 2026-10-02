@@ -5,9 +5,9 @@ import 'package:to_do_app/core/components/custom_button.dart';
 import 'package:to_do_app/core/components/custom_text_field.dart';
 import 'package:to_do_app/core/helper/navigation.dart';
 import 'package:to_do_app/core/utils/colors.dart';
-import 'package:to_do_app/features/auth/data/repo/auth_repo.dart';
-import 'package:to_do_app/features/auth/presentation/views/register_screen.dart';
-import 'package:to_do_app/features/home/presentation/views/home_screen.dart';
+import 'package:to_do_app/screens/home_screen.dart';
+import 'package:to_do_app/screens/register_screen.dart';
+import 'package:to_do_app/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,50 +17,53 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool isShowen = false;
+  bool isPasswordVisible = false;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool isLoading = false;
-  final AuthRepo _authRepo = AuthRepo();
+  final _authService = AuthService();
 
-  /// Handle login with authentication
-  /// Navigates to HomeScreen on successful login
   Future<void> _login() async {
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter username and password')),
-      );
+      _showSnackBar('Please enter username and password');
       return;
     }
 
     setState(() => isLoading = true);
 
     try {
-      final result = await _authRepo.login(
+      final result = await _authService.login(
         username: _usernameController.text,
         password: _passwordController.text,
       );
 
-      if (mounted) {
-        setState(() => isLoading = false);
+      if (!mounted) return;
+      setState(() => isLoading = false);
 
-        if (result['status'] == 'success') {
-          // Navigate to home screen after successful login
-          CustomNavigation.navigateAndRemoveAll(context, const HomeScreen());
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Login failed')),
-          );
-        }
+      if (result['status'] == 'success') {
+        CustomNavigation.navigateAndRemoveAll(context, const HomeScreen());
+      } else {
+        _showSnackBar(result['message'] ?? 'Login failed');
       }
     } catch (e) {
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        _showSnackBar('Error: $e');
       }
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -96,20 +99,18 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             SizedBox(height: 10.h),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 23.h),
+              padding: EdgeInsets.symmetric(horizontal: 23.w),
               child: CustomTextField(
-                obsecure: !isShowen,
+                obsecure: !isPasswordVisible,
                 text: "Password",
                 prefixIcon: SvgPicture.asset(
                   "assets/images/auth/login_password_icon.svg",
                 ),
-                suffixIcon: isShowen
+                suffixIcon: isPasswordVisible
                     ? "assets/images/auth/login_username_icon_showen.svg"
                     : "assets/images/auth/login_username_icon_hidden.svg",
                 onPressed: () {
-                  setState(() {
-                    isShowen = !isShowen;
-                  });
+                  setState(() => isPasswordVisible = !isPasswordVisible);
                 },
                 controller: _passwordController,
               ),
@@ -124,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Don't have aacount?",
+                  "Don't have account?",
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w300,
@@ -151,12 +152,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 }

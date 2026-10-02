@@ -5,8 +5,8 @@ import 'package:to_do_app/core/components/custom_button.dart';
 import 'package:to_do_app/core/components/custom_text_field.dart';
 import 'package:to_do_app/core/helper/navigation.dart';
 import 'package:to_do_app/core/utils/colors.dart';
-import 'package:to_do_app/features/auth/data/repo/auth_repo.dart';
-import 'package:to_do_app/features/auth/presentation/views/login_screen.dart';
+import 'package:to_do_app/screens/login_screen.dart';
+import 'package:to_do_app/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,80 +16,92 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  bool passwordShowen = false;
-  bool confirmPasswordShowen = false;
+  bool passwordVisible = false;
+  bool confirmPasswordVisible = false;
   bool isLoading = false;
+
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confrimPasswordController =
+  final TextEditingController _confirmPasswordController =
       TextEditingController();
-  final AuthRepo _authRepo = AuthRepo();
 
-  /// Handle registration with validation
-  /// Navigates to LoginScreen after successful registration
+  final _authService = AuthService();
+
   Future<void> _register() async {
     // Validation
     if (_usernameController.text.isEmpty ||
         _passwordController.text.isEmpty ||
-        _confrimPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+        _confirmPasswordController.text.isEmpty) {
+      _showSnackBar('Please fill all fields');
       return;
     }
 
-    if (_passwordController.text != _confrimPasswordController.text) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+    if (_passwordController.text != _confirmPasswordController.text) {
+      _showSnackBar('Passwords do not match');
       return;
     }
 
     if (_passwordController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters')),
-      );
+      _showSnackBar('Password must be at least 6 characters');
       return;
     }
 
     setState(() => isLoading = true);
 
     try {
-      final result = await _authRepo.register(
+      final result = await _authService.register(
         username: _usernameController.text,
         password: _passwordController.text,
       );
 
-      if (mounted) {
-        setState(() => isLoading = false);
+      // DEBUG: Print full response
+      print('=== REGISTER RESPONSE ===');
+      print('Full Response: $result');
+      print('Status: ${result['status']}');
+      print('Message: ${result['message']}');
+      print('Data: ${result['data']}');
+      print('========================');
 
-        if (result['status'] == 'success') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registration successful! Please login.'),
-            ),
-          );
-          // Navigate to login screen after successful registration
-          if (mounted) {
-            CustomNavigation.navigationPushReplacement(
-              context,
-              const LoginScreen(),
-            );
-          }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Registration failed')),
+      if (!mounted) return;
+      setState(() => isLoading = false);
+
+      if (result['status'] == 'success') {
+        _showSnackBar('Registration successful! Please login.');
+        if (mounted) {
+          CustomNavigation.navigationPushReplacement(
+            context,
+            const LoginScreen(),
           );
         }
+      } else {
+        _showSnackBar(result['message'] ?? 'Registration failed');
       }
     } catch (e) {
+      // DEBUG: Print exception
+      print('=== REGISTER ERROR ===');
+      print('Exception: $e');
+      print('Exception Type: ${e.runtimeType}');
+      print('=======================');
+
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        _showSnackBar('Error: $e');
       }
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -125,42 +137,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             SizedBox(height: 10.h),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 23.h),
+              padding: EdgeInsets.symmetric(horizontal: 23.w),
               child: CustomTextField(
-                obsecure: !passwordShowen,
+                obsecure: !passwordVisible,
                 text: "Password",
                 prefixIcon: SvgPicture.asset(
                   "assets/images/auth/login_password_icon.svg",
                 ),
-                suffixIcon: passwordShowen
+                suffixIcon: passwordVisible
                     ? "assets/images/auth/login_username_icon_showen.svg"
                     : "assets/images/auth/login_username_icon_hidden.svg",
                 onPressed: () {
-                  setState(() {
-                    passwordShowen = !passwordShowen;
-                  });
+                  setState(() => passwordVisible = !passwordVisible);
                 },
                 controller: _passwordController,
               ),
             ),
             SizedBox(height: 10.h),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 23.h),
+              padding: EdgeInsets.symmetric(horizontal: 23.w),
               child: CustomTextField(
-                obsecure: !confirmPasswordShowen,
+                obsecure: !confirmPasswordVisible,
                 text: "Confirm Password",
                 prefixIcon: SvgPicture.asset(
                   "assets/images/auth/login_password_icon.svg",
                 ),
-                suffixIcon: confirmPasswordShowen
+                suffixIcon: confirmPasswordVisible
                     ? "assets/images/auth/login_username_icon_showen.svg"
                     : "assets/images/auth/login_username_icon_hidden.svg",
                 onPressed: () {
-                  setState(() {
-                    confirmPasswordShowen = !confirmPasswordShowen;
-                  });
+                  setState(
+                    () => confirmPasswordVisible = !confirmPasswordVisible,
+                  );
                 },
-                controller: _confrimPasswordController,
+                controller: _confirmPasswordController,
               ),
             ),
             SizedBox(height: 23.h),
@@ -173,7 +183,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Already have an aacount?",
+                  "Already have account?",
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w300,
@@ -200,13 +210,5 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    _confrimPasswordController.dispose();
-    super.dispose();
   }
 }

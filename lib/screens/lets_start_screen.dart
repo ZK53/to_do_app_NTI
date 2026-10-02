@@ -5,18 +5,14 @@ import 'package:to_do_app/core/components/custom_button.dart';
 import 'package:to_do_app/core/helper/app_initialization.dart';
 import 'package:to_do_app/core/helper/navigation.dart';
 import 'package:to_do_app/core/utils/colors.dart';
-import 'package:to_do_app/features/auth/presentation/views/login_screen.dart';
+import 'package:to_do_app/screens/login_screen.dart';
 
 class LetsStartScreen extends StatelessWidget {
   const LetsStartScreen({super.key});
 
-  /// Handle the "Let's Start" button press
-  /// Marks the app as launched and navigates to login screen
   Future<void> _handleGetStarted(BuildContext context) async {
-    // Mark that the user has seen the onboarding screen
     await AppInitialization.markAppAsLaunched();
 
-    // Navigate to login screen
     if (context.mounted) {
       CustomNavigation.navigateAndRemoveAll(context, const LoginScreen());
     }
@@ -48,13 +44,10 @@ class LetsStartScreen extends StatelessWidget {
             SizedBox(height: 40.h),
             Text(
               "Ready to conquer your tasks? Let's do",
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16.sp),
+              style: TextStyle(fontWeight: FontWeight.w300, fontSize: 14.sp),
+              textAlign: TextAlign.center,
             ),
-            Text(
-              "it together.",
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16.sp),
-            ),
-            SizedBox(height: 68.h),
+            SizedBox(height: 60.h),
             CustomButton(
               onPressed: () => _handleGetStarted(context),
               text: "Let's Start",

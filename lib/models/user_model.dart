@@ -10,4 +10,8 @@ class UserModel {
     imagePath = json['image_path'];
     username = json['username'];
   }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'image_path': imagePath, 'username': username};
+  }
 }

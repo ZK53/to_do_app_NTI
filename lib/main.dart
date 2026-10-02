@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart' hide RootWidget;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:to_do_app/core/helper/root_widget.dart';
-import 'package:to_do_app/features/auth/data/repo/auth_repo.dart';
+import 'package:to_do_app/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AuthRepo.loadTokens();
+  await AuthService.loadTokens();
   runApp(
     ScreenUtilInit(
       designSize: const Size(375, 812),

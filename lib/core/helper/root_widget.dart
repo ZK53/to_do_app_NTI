@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_app/core/helper/app_initialization.dart';
-import 'package:to_do_app/features/auth/presentation/views/lets_start_screen.dart';
-import 'package:to_do_app/features/auth/presentation/views/login_screen.dart';
-import 'package:to_do_app/features/auth/presentation/views/splash_screen.dart';
-import 'package:to_do_app/features/home/presentation/views/home_screen.dart';
+import 'package:to_do_app/screens/home_screen.dart';
+import 'package:to_do_app/screens/lets_start_screen.dart';
+import 'package:to_do_app/screens/login_screen.dart';
+import 'package:to_do_app/screens/splash_screen.dart';
 
 class RootWidget extends StatefulWidget {
   const RootWidget({super.key});

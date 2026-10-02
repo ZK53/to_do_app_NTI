@@ -3,35 +3,28 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:to_do_app/core/helper/navigation.dart';
 import 'package:to_do_app/core/utils/colors.dart';
-import 'package:to_do_app/features/profile/presentation/views/profile_screen.dart';
-import 'package:to_do_app/features/tasks/data/models/task_model.dart';
-import 'package:to_do_app/features/tasks/data/repo/tasks_repo.dart';
-import 'package:to_do_app/features/tasks/presentation/views/add_task_screen.dart';
-import 'package:to_do_app/features/tasks/presentation/views/edit_task_screen.dart';
+import 'package:to_do_app/models/task_model.dart';
+import 'package:to_do_app/screens/add_task_screen.dart';
+import 'package:to_do_app/screens/edit_task_screen.dart';
+import 'package:to_do_app/screens/profile_screen.dart';
+import 'package:to_do_app/services/task_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  final TasksRepo? tasksRepo;
-  final List<TaskModel>? initialTasks;
-
-  const HomeScreen({super.key, this.tasksRepo, this.initialTasks});
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late final TasksRepo _tasksRepo;
+  late final TaskService _taskService;
   List<TaskModel> _tasks = [];
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _tasksRepo = widget.tasksRepo ?? TasksRepo();
-    if (widget.initialTasks != null) {
-      _tasks = widget.initialTasks!;
-      return;
-    }
+    _taskService = TaskService();
     _loadTasks();
   }
 
@@ -39,26 +32,25 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final result = await _tasksRepo.getMyTasks().timeout(
+      final result = await _taskService.getMyTasks().timeout(
         const Duration(seconds: 15),
         onTimeout: () => {'status': 'failed', 'message': 'Request timed out'},
       );
 
       if (!mounted) return;
 
-      final data = result['data'];
-      List<TaskModel> tasks = [];
-
-      if (data is List) {
-        tasks = data
-            .map((item) => TaskModel.fromJson(Map<String, dynamic>.from(item)))
-            .toList();
+      if (result['status'] == 'success') {
+        final data = result['data'] as List<TaskModel>;
+        setState(() {
+          _tasks = data;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _tasks = [];
+          _isLoading = false;
+        });
       }
-
-      setState(() {
-        _tasks = tasks;
-        _isLoading = false;
-      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -73,13 +65,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          CustomNavigation.navigationPush(
-            context,
-            AddTaskScreen(tasksRepo: _tasksRepo),
+        onPressed: () async {
+          final result = await Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const AddTaskScreen()),
           );
+          if (result == true) {
+            _loadTasks();
+          }
         },
-        shape: CircleBorder(),
+        shape: const CircleBorder(),
         backgroundColor: Colors.transparent,
         elevation: 0,
         highlightElevation: 0,
@@ -90,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: AppColors.button,
             boxShadow: [
               BoxShadow(
-                offset: Offset(0, 4),
+                offset: const Offset(0, 4),
                 spreadRadius: 0,
                 blurRadius: 4,
                 color: const Color(0x40000000),
@@ -109,11 +103,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
-                  _headerBuilder(context),
+                  _buildHeader(context),
                   Expanded(
                     child: _tasks.isEmpty
-                        ? _noTodoBuilder()
-                        : _todoListBulder(),
+                        ? _buildEmptyState()
+                        : _buildTaskList(),
                   ),
                 ],
               ),
@@ -121,23 +115,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _headerBuilder(BuildContext context) {
+  Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(top: 20.h, left: 20.w),
       child: Row(
         children: [
           GestureDetector(
-            key: const ValueKey('profile_avatar'),
             onTap: () {
               CustomNavigation.navigationPush(context, const ProfileScreen());
             },
             child: CircleAvatar(
-              backgroundImage: AssetImage("assets/images/flag.png"),
+              backgroundImage: const AssetImage("assets/images/flag.png"),
               radius: 30,
             ),
           ),
           SizedBox(width: 16.w),
           Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "Hello!",
@@ -145,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: 4.h),
               Text(
-                "Ahmed Saber",
+                "User",
                 style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w300),
               ),
             ],
@@ -155,13 +149,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _noTodoBuilder() {
+  Widget _buildEmptyState() {
     return Padding(
       padding: EdgeInsets.only(top: 143.h),
       child: Column(
         children: [
           Text(
-            "There are no tasks yet,\nPress the button\nTo add New Task ",
+            "There are no tasks yet,\nPress the button\nTo add New Task",
             style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w300),
             textAlign: TextAlign.center,
           ),
@@ -175,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _todoListBulder() {
+  Widget _buildTaskList() {
     return Padding(
       padding: EdgeInsets.only(top: 43.h, left: 20.w, right: 20.w),
       child: Column(
@@ -187,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w300,
-                  color: Color(0xFF24252C),
+                  color: const Color(0xFF24252C),
                 ),
               ),
               SizedBox(width: 20.w),
@@ -195,14 +189,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 15.h,
                 width: 14.w,
                 decoration: BoxDecoration(
-                  color: Color(0xFFCEEBDC),
+                  color: const Color(0xFFCEEBDC),
                   borderRadius: BorderRadius.circular(5),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   _tasks.length.toString(),
                   style: TextStyle(
-                    color: Color(0xFF149954),
+                    color: const Color(0xFF149954),
                     fontWeight: FontWeight.w400,
                     fontSize: 12.sp,
                   ),
@@ -218,19 +212,18 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, index) {
                 final task = _tasks[index];
                 return GestureDetector(
-                  onTap: () {
-                    CustomNavigation.navigationPush(
-                      context,
-                      EditTaskScreen(
-                        tasksRepo: _tasksRepo,
-                        taskId: task.id,
-                        initialTitle: task.title,
-                        initialDescription: task.description,
-                        initialGroup: 'Home',
+                  onTap: () async {
+                    final result = await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            EditTaskScreen(taskId: task.id, taskModel: task),
                       ),
                     );
+                    if (result == true) {
+                      _loadTasks();
+                    }
                   },
-                  child: _todoCardBuilder(task),
+                  child: _buildTaskCard(task),
                 );
               },
             ),
@@ -240,18 +233,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _todoCardBuilder(TaskModel task) {
+  Widget _buildTaskCard(TaskModel task) {
     return Container(
       margin: EdgeInsets.only(bottom: 20.h),
-      padding: EdgeInsets.all(13),
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: Color(0xFFCEEBDC),
+        color: const Color(0xFFCEEBDC),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             blurRadius: 4,
-            offset: Offset(0, 4),
-            color: Color.fromRGBO(0, 0, 0, 0.25),
+            offset: const Offset(0, 4),
+            color: const Color.fromRGBO(0, 0, 0, 0.25),
           ),
         ],
       ),
@@ -262,15 +255,19 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              spacing: 15,
               children: [
                 Text(
                   task.title,
-                  style: TextStyle(color: Color.fromRGBO(110, 106, 124, 1)),
+                  style: const TextStyle(
+                    color: Color.fromRGBO(110, 106, 124, 1),
+                  ),
                 ),
+                SizedBox(height: 15.h),
                 Text(
                   task.description,
-                  style: TextStyle(color: Color.fromRGBO(36, 37, 44, 1)),
+                  style: const TextStyle(color: Color.fromRGBO(36, 37, 44, 1)),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -282,11 +279,15 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   task.date ?? 'No date',
-                  style: TextStyle(color: Color.fromRGBO(110, 106, 124, 1)),
+                  style: const TextStyle(
+                    color: Color.fromRGBO(110, 106, 124, 1),
+                  ),
                 ),
                 Text(
                   task.time ?? 'No time',
-                  style: TextStyle(color: Color.fromRGBO(110, 106, 124, 1)),
+                  style: const TextStyle(
+                    color: Color.fromRGBO(110, 106, 124, 1),
+                  ),
                 ),
               ],
             ),
